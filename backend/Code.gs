@@ -30,6 +30,7 @@ var HEADERS = {
 
 var TEAMS = ['Macarita', 'PastelIA'];
 var LOCK_MS = 20000;
+var MAX_VOTES = 2; // votos por participante, por reunión (no cuenta quitar)
 
 /* ============================ ROUTER ============================ */
 
@@ -397,13 +398,19 @@ function getBoard(params) {
       equipo: i.equipo,
       texto: i.texto,
       autor: pmap[i.id_participante] || '—',
-      votos: tally[i.id_idea] || 0
+      votos: tally[i.id_idea] || 0,
+      mine: String(i.id_participante) === String(params.participantId || '')
     };
   });
 
   if (params.team) list = list.filter(function (i) { return String(i.equipo) === String(params.team); });
 
-  return { meeting: publicMeeting_(meetingById_(mid)), ideas: list, myVotes: myVotes };
+  return {
+    meeting: publicMeeting_(meetingById_(mid)),
+    ideas: list,
+    myVotes: myVotes,
+    maxVotes: MAX_VOTES
+  };
 }
 
 function toggleVote(params) {
@@ -421,11 +428,13 @@ function toggleVote(params) {
     }
     if (!idea) throw new Error('Esa idea ya no existe.');
     if (String(idea.equipo) !== String(me.equipo)) throw new Error('Solo puedes votar ideas de tu equipo.');
+    if (String(idea.id_participante) === String(me.id_participante)) throw new Error('No puedes votar tus propias ideas.');
 
-    var existing = readAll_('Votos').filter(function (v) {
-      return String(v.id_idea) === String(params.ideaId) &&
+    var myVotes = readAll_('Votos').filter(function (v) {
+      return String(v.id_reunion) === String(m.id_reunion) &&
              String(v.id_participante_que_vota) === String(me.id_participante);
     });
+    var existing = myVotes.filter(function (v) { return String(v.id_idea) === String(params.ideaId); });
 
     var voted;
     if (existing.length) {
@@ -433,6 +442,9 @@ function toggleVote(params) {
         .forEach(function (v) { deleteRow_('Votos', v._row); });
       voted = false;
     } else {
+      if (myVotes.length >= MAX_VOTES) {
+        throw new Error('Solo puedes votar ' + MAX_VOTES + ' ideas. Quita un voto para cambiar.');
+      }
       append_('Votos', {
         id_voto: id_('v'),
         id_reunion: m.id_reunion,
@@ -447,7 +459,12 @@ function toggleVote(params) {
       return String(v.id_idea) === String(params.ideaId);
     }).length;
 
-    return { voted: voted, votos: count, ideaId: params.ideaId };
+    return {
+      voted: voted,
+      votos: count,
+      ideaId: params.ideaId,
+      myVoteCount: voted ? myVotes.length + 1 : myVotes.length - 1
+    };
   });
 }
 

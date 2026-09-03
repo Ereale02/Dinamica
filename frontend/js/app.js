@@ -12,8 +12,9 @@
     session: load(),          // { participantId, name, team, meetingId } | null
     meeting: null,            // reunión activa pública | null
     view: 'team',             // pestaña del tablero
-    board: { ideas: [], myVotes: [] },
-    poll: null
+    board: { ideas: [], myVotes: [], maxVotes: 2 },
+    poll: null,
+    votePending: 0           // votos en vuelo: pausa el polling para no pisar el estado optimista
   };
 
   /* ----------------------------- utils ----------------------------- */
@@ -91,8 +92,10 @@
 
   function refreshBoard() {
     if (!state.session) return Promise.resolve();
+    if (state.votePending > 0) return Promise.resolve(); // hay un voto en vuelo: no pises el estado optimista
     return API.get('getBoard', { participantId: state.session.participantId })
       .then(function (b) {
+        if (state.votePending > 0) return; // llegó tarde
         state.board = b;
         renderTeamView();
         renderResultsView();
@@ -238,37 +241,89 @@
   function renderTeamView() {
     var el = $('#boardTeamView');
     var team = state.session && state.session.team;
-    var mine = (state.board.ideas || []).filter(function (i) { return i.equipo === team; });
-    if (!mine.length) {
+    var mineTeam = (state.board.ideas || []).filter(function (i) { return i.equipo === team; });
+    if (!mineTeam.length) {
       el.innerHTML = '<div class="empty">Aún no hay ideas de tu equipo. Sé la primera en compartir.</div>';
       return;
     }
     var voteSet = {};
     (state.board.myVotes || []).forEach(function (k) { voteSet[k] = true; });
     var closed = state.board.meeting && state.board.meeting.estado !== 'activa';
+    var maxVotes = state.board.maxVotes || 2;
+    var used = (state.board.myVotes || []).length;
+    var left = Math.max(0, maxVotes - used);
 
-    el.innerHTML = mine.map(function (e) {
+    var header = closed
+      ? '<div class="muted" style="padding:2px 2px 6px;">Votación cerrada.</div>'
+      : '<div class="muted" style="padding:2px 2px 6px;">Te quedan <b>' + left + '</b> de ' + maxVotes +
+        ' votos · no puedes votar tus propias ideas.</div>';
+
+    el.innerHTML = header + mineTeam.map(function (e) {
+      var voted = !!voteSet[e.id];
+      var atLimit = !voted && used >= maxVotes;
+      var control = e.mine
+        ? '<span class="muted" style="font-size:12px;font-weight:600;">Tu idea</span>'
+        : '<button class="vote-btn ' + (voted ? 'voted' : '') + '" data-key="' + esc(e.id) + '"' +
+          ((closed || atLimit) ? ' disabled' : '') + '>&#9829; ' + e.votos + '</button>';
       return '<div class="idea-card">' +
         '<div class="who">' + esc(e.autor) + '</div>' +
         '<div class="text">' + esc(e.texto) + '</div>' +
-        '<div class="row"><span></span>' +
-        '<button class="vote-btn ' + (voteSet[e.id] ? 'voted' : '') + '" data-key="' + esc(e.id) + '"' +
-        (closed ? ' disabled' : '') + '>&#9829; ' + e.votos + '</button>' +
-        '</div></div>';
+        '<div class="row"><span></span>' + control + '</div></div>';
     }).join('');
 
     $all('.vote-btn', el).forEach(function (btn) {
+      if (btn.disabled) return;
       btn.addEventListener('click', function () { toggleVote(btn.dataset.key); });
     });
   }
 
   function toggleVote(ideaId) {
-    API.post('toggleVote', {
-      participantId: state.session.participantId,
-      ideaId: ideaId
-    })
-      .then(function () { refreshBoard(); })
-      .catch(function (e) { toast(e.message, true); });
+    if (!state.session) return;
+    var ideas = state.board.ideas || [];
+    var idea = null;
+    for (var i = 0; i < ideas.length; i++) { if (ideas[i].id === ideaId) { idea = ideas[i]; break; } }
+    if (!idea) return;
+    if (idea.mine) { toast('No puedes votar tus propias ideas.', true); return; }
+
+    var myVotes = (state.board.myVotes || []).slice();
+    var maxVotes = state.board.maxVotes || 2;
+    var have = myVotes.indexOf(ideaId) !== -1;
+    if (!have && myVotes.length >= maxVotes) {
+      toast('Solo puedes votar ' + maxVotes + ' ideas. Quita un voto para cambiar.', true);
+      return;
+    }
+
+    // --- actualización optimista: el corazón cambia al instante ---
+    var prevVotes = myVotes.slice();
+    var prevCount = idea.votos;
+    if (have) {
+      state.board.myVotes = myVotes.filter(function (k) { return k !== ideaId; });
+      idea.votos = Math.max(0, idea.votos - 1);
+    } else {
+      state.board.myVotes = myVotes.concat([ideaId]);
+      idea.votos = idea.votos + 1;
+    }
+    renderTeamView();
+    renderResultsView();
+
+    state.votePending++;
+    API.post('toggleVote', { participantId: state.session.participantId, ideaId: ideaId })
+      .then(function (r) {
+        if (typeof r.votos === 'number') idea.votos = r.votos;
+        var set = (state.board.myVotes || []).filter(function (k) { return k !== ideaId; });
+        if (r.voted) set.push(ideaId);
+        state.board.myVotes = set;
+      })
+      .catch(function (e) {
+        state.board.myVotes = prevVotes;   // revertir
+        idea.votos = prevCount;
+        toast(e.message, true);
+      })
+      .then(function () {
+        state.votePending = Math.max(0, state.votePending - 1);
+        renderTeamView();
+        renderResultsView();
+      });
   }
 
   function topByTeam(team) {

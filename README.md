@@ -143,7 +143,8 @@ Todas las respuestas: `{ ok: true, data }` o `{ ok: false, error }`.
 - Solo **una reunión activa** a la vez.
 - Un participante solo envía ideas mientras su reunión siga activa.
 - Un voto por participante por idea; se puede quitar.
-- Solo se votan ideas del **equipo propio**.
+- Máximo **2 votos** por participante por reunión (`MAX_VOTES` en `backend/Code.gs`). Quitar un voto no cuenta.
+- Solo se votan ideas del **equipo propio**, y **no** las ideas propias.
 - El resumen, una vez generado, queda fijo salvo que la admin lo regenere.
 - Cerrar una reunión no borra datos: cambia `estado` a `cerrada`.
 
