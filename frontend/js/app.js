@@ -77,17 +77,29 @@
   function tick() {
     var active = document.querySelector('.screen.active');
     var id = active && active.id;
-    if (id === 'screen-board') { refreshBoard(); refreshMeeting(); }
+    if (id === 'screen-board' || id === 'screen-ideas') { refreshBoard(); checkMeetingShift(); }
     else if (id === 'screen-join') { bootRoute(); }
     else if (id === 'screen-admin' && window.Admin) { window.Admin.refresh(); }
   }
 
   /* ------------------------- data helpers ------------------------- */
-  function refreshMeeting() {
-    return API.get('getState', {}).then(function (s) {
+  // ¿La reunión activa sigue siendo la misma con la que me registré?
+  // Si terminó o empezó otra, la sesión guardada ya no vale → volver a registro.
+  function checkMeetingShift() {
+    var askedPid = state.session ? state.session.participantId : null;
+    var q = askedPid ? { participantId: askedPid } : {};
+    return API.get('getState', q).then(function (s) {
+      var curPid = state.session ? state.session.participantId : null;
+      if (askedPid !== curPid) return; // la sesión cambió mientras viajaba la petición
       state.meeting = s.activeMeeting;
       $('#shareFab').style.display = s.activeMeeting ? 'block' : 'none';
+      if (askedPid && !sessionStillValid(s)) bootRoute();
     }).catch(function () {});
+  }
+
+  function sessionStillValid(s) {
+    return !!(state.session && s.participant && s.inActiveMeeting &&
+             s.activeMeeting && String(state.session.meetingId) === String(s.activeMeeting.id));
   }
 
   function refreshBoard() {
@@ -151,6 +163,7 @@
         .then(function () {
           window.Admin.setCreds(name, pin);
           $('#navAdmin').style.display = 'block';
+          $('#navLeave').style.display = 'none';
           $('#bottomNav').style.display = 'flex';
           window.Admin.enter();
         })
@@ -169,6 +182,8 @@
         save();
         $('#headerTitle').textContent = 'Equipo ' + r.team;
         $('#bottomNav').style.display = 'flex';
+        $('#navLeave').style.display = 'block';
+        $('#navAdmin').style.display = 'none';
         goToIdeas();
       })
       .catch(function (e) { toast(e.message, true); btn.disabled = false; });
@@ -203,6 +218,7 @@
     $all('nav.bottom button').forEach(function (b) {
       b.addEventListener('click', function () {
         var nav = b.dataset.nav;
+        if (nav === 'leave') { doLeave(); return; }
         if (nav === 'ideas') goToIdeas();
         else if (nav === 'board') goToBoard();
         else if (nav === 'admin' && window.Admin) window.Admin.enter();
@@ -231,10 +247,16 @@
     if (b) b.classList.add('active');
   }
 
+  function doLeave() {
+    if (!confirm('¿Salir? Se borrará tu registro en este celular para que otra persona pueda usar el enlace.')) return;
+    clearSession();
+    location.reload();
+  }
+
   function goToIdeas() { showScreen('screen-ideas'); setNav('ideas'); }
   function goToBoard() {
     showScreen('screen-board'); setNav('board');
-    refreshBoard(); refreshMeeting();
+    refreshBoard();
   }
 
   /* --------------------------- RENDERERS -------------------------- */
@@ -266,7 +288,6 @@
         : '<button class="vote-btn ' + (voted ? 'voted' : '') + '" data-key="' + esc(e.id) + '"' +
           ((closed || atLimit) ? ' disabled' : '') + '>&#9829; ' + e.votos + '</button>';
       return '<div class="idea-card">' +
-        '<div class="who">' + esc(e.autor) + '</div>' +
         '<div class="text">' + esc(e.texto) + '</div>' +
         '<div class="row"><span></span>' + control + '</div></div>';
     }).join('');
@@ -326,21 +347,32 @@
       });
   }
 
+  var TOP_N = 3;
+
   function topByTeam(team) {
     return (state.board.ideas || [])
       .filter(function (i) { return i.equipo === team; })
       .slice()
       .sort(function (a, b) { return b.votos - a.votos; })
-      .slice(0, 5);
+      .slice(0, TOP_N);
   }
 
-  function rankRows(entries, color) {
+  function topOverall(n) {
+    return (state.board.ideas || [])
+      .slice()
+      .sort(function (a, b) { return b.votos - a.votos; })
+      .slice(0, n);
+  }
+
+  function rankRows(entries, color, showTeam) {
     if (!entries.length) return '<div class="empty">Sin ideas todavía.</div>';
     return entries.map(function (e, i) {
+      var meta = (showTeam ? esc(e.equipo) + ' · ' : '') +
+        e.votos + ' voto' + (e.votos === 1 ? '' : 's');
       return '<div class="idea-card rank">' +
         '<div class="n" style="color:' + color + '">' + (i + 1) + '</div>' +
         '<div style="flex:1;">' +
-        '<div class="who">' + esc(e.autor) + ' · ' + e.votos + ' voto' + (e.votos === 1 ? '' : 's') + '</div>' +
+        '<div class="who">' + meta + '</div>' +
         '<div class="text">' + esc(e.texto) + '</div>' +
         '</div></div>';
     }).join('');
@@ -349,10 +381,13 @@
   function renderResultsView() {
     var el = $('#boardResultsView');
     el.innerHTML =
-      '<h3 class="section-title" style="color:var(--macarita)">Equipo Macarita · top 5</h3>' +
+      '<h3 class="section-title" style="color:var(--macarita)">Equipo Macarita · top ' + TOP_N + '</h3>' +
       rankRows(topByTeam('Macarita'), 'var(--macarita)') +
-      '<h3 class="section-title" style="color:var(--pastelia)">Equipo PastelIA · top 5</h3>' +
-      rankRows(topByTeam('PastelIA'), 'var(--pastelia)');
+      '<h3 class="section-title" style="color:var(--pastelia)">Equipo PauletteIA · top ' + TOP_N + '</h3>' +
+      rankRows(topByTeam('PauletteIA'), 'var(--pastelia)') +
+      '<div class="divider"></div>' +
+      '<h3 class="section-title">Top ' + TOP_N + ' general</h3>' +
+      rankRows(topOverall(TOP_N), 'var(--ink)', true);
   }
 
   /* ---------------------------- SHARE ----------------------------- */
@@ -376,39 +411,54 @@
   }
 
   /* --------------------------- ROUTING ---------------------------- */
+  function resetJoinForm() {
+    joinTeam = '';
+    var n = $('#nameInput'); if (n) n.value = '';
+    var p = $('#pinInput'); if (p) p.value = '';
+    $all('.team-btn').forEach(function (b) { b.classList.remove('selected'); });
+    $('#pinField').style.display = 'none';
+    $('#teamField').style.display = 'flex';
+    $('#joinBtn').textContent = 'Continuar';
+    $all('.ideaInput').forEach(function (i) { i.value = ''; });
+    $('#ideasHint').textContent = '';
+    $('#submitIdeasBtn').textContent = 'Compartir con mi equipo';
+    $('#submitIdeasBtn').disabled = false;
+    $('#headerTitle').textContent = '¿En qué te ayudaría la IA?';
+  }
+
   function bootRoute() {
-    var q = state.session ? { participantId: state.session.participantId } : {};
+    var askedPid = state.session ? state.session.participantId : null;
+    var q = askedPid ? { participantId: askedPid } : {};
     return API.get('getState', q).then(function (s) {
+      // Si la sesión cambió mientras viajaba la petición (p. ej. el usuario
+      // acaba de registrarse), esta respuesta ya no aplica: reintenta limpio.
+      var curPid = state.session ? state.session.participantId : null;
+      if (askedPid !== curPid) { bootRoute(); return; }
+
       state.meeting = s.activeMeeting;
       $('#shareFab').style.display = s.activeMeeting ? 'block' : 'none';
 
-      // sesión de admin activa en este navegador
       var adminHere = window.Admin && window.Admin.hasCreds();
       if (adminHere) {
         $('#navAdmin').style.display = 'block';
-        $('#bottomNav').style.display = 'flex';
+        $('#navLeave').style.display = 'none';
       }
 
-      // sesión guardada pero el servidor ya no conoce a este participante
-      if (state.session && !s.participant) clearSession();
+      // Solo podemos declarar inválida la sesión si preguntamos por este
+      // participante y el servidor no lo reconoció / es de otra reunión.
+      var valid = askedPid ? sessionStillValid(s) : false;
 
-      if (adminHere && !(state.session && s.participant)) {
-        window.Admin.enter();
-        return;
+      if (state.session && askedPid && !valid) {
+        clearSession();
+        resetJoinForm();
       }
 
-      if (state.session && s.participant) {
-        // participante ya registrado
+      if (adminHere && !valid) { window.Admin.enter(); return; }
+
+      if (valid) {
         $('#headerTitle').textContent = 'Equipo ' + state.session.team;
         $('#bottomNav').style.display = 'flex';
-
-        if (!s.inActiveMeeting) {
-          // su reunión terminó (o hay otra distinta)
-          showScreen('screen-board');
-          setNav('board');
-          refreshBoard();
-          return;
-        }
+        if (!adminHere) $('#navLeave').style.display = 'block';
         if (s.hasSubmittedIdeas) {
           $('#ideasHint').textContent = 'Ya enviaste tus ideas. Puedes editarlas mientras la reunión siga activa.';
           $('#submitIdeasBtn').textContent = 'Actualizar mis ideas';
@@ -419,7 +469,8 @@
         return;
       }
 
-      // sin registro: pantalla de unirse / espera
+      // sin sesión válida → registro / espera
+      $('#bottomNav').style.display = adminHere ? 'flex' : 'none';
       if (!s.activeMeeting) {
         $('#joinWaiting').style.display = 'block';
         $('#joinBtn').disabled = true;

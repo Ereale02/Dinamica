@@ -28,9 +28,10 @@ var HEADERS = {
   Votos:         ['id_voto', 'id_reunion', 'id_idea', 'id_participante_que_vota', 'fecha']
 };
 
-var TEAMS = ['Macarita', 'PastelIA'];
+var TEAMS = ['Macarita', 'PauletteIA'];
 var LOCK_MS = 20000;
 var MAX_VOTES = 2; // votos por participante, por reunión (no cuenta quitar)
+var TOP_N = 3;     // cuántas ideas por equipo en el resumen / ranking
 
 /* ============================ ROUTER ============================ */
 
@@ -271,15 +272,23 @@ function computeSummary_(mid) {
         return { id: i.id_idea, texto: i.texto, autor: pmap[i.id_participante] || '—', votos: tally[i.id_idea] || 0 };
       })
       .sort(function (a, b) { return b.votos - a.votos; })
-      .slice(0, 5);
+      .slice(0, TOP_N);
   });
+
+  var general = ideas
+    .map(function (i) {
+      return { id: i.id_idea, texto: i.texto, equipo: i.equipo, autor: pmap[i.id_participante] || '—', votos: tally[i.id_idea] || 0 };
+    })
+    .sort(function (a, b) { return b.votos - a.votos; })
+    .slice(0, TOP_N);
 
   return {
     generado_en: now_(),
     total_participantes: parts.length,
     total_ideas: ideas.length,
     total_votos: votes.length,
-    equipos: equipos
+    equipos: equipos,
+    general: general
   };
 }
 
@@ -544,11 +553,17 @@ function exportMeeting(params) {
   L.push(csvRow_(['total_votos', summary.total_votos]));
   TEAMS.forEach(function (team) {
     L.push('');
-    L.push('TOP 5 · ' + team);
+    L.push('TOP ' + TOP_N + ' · ' + team);
     L.push(csvRow_(['#', 'autor', 'idea', 'votos']));
     (summary.equipos[team] || []).forEach(function (e, idx) {
       L.push(csvRow_([idx + 1, e.autor, e.texto, e.votos]));
     });
+  });
+  L.push('');
+  L.push('TOP ' + TOP_N + ' · GENERAL');
+  L.push(csvRow_(['#', 'equipo', 'autor', 'idea', 'votos']));
+  (summary.general || []).forEach(function (e, idx) {
+    L.push(csvRow_([idx + 1, e.equipo, e.autor, e.texto, e.votos]));
   });
 
   var safe = String(m.nombre || 'reunion').replace(/[^a-z0-9\-_]+/gi, '_').slice(0, 40);

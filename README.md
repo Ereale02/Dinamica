@@ -1,7 +1,7 @@
 # Kickoff IA — App de dinámica
 
 App web ligera para una dinámica de lluvia de ideas sobre casos de uso de IA.
-Dos equipos (**Macarita** y **PastelIA**) aportan ideas, las votan dentro de su
+Dos equipos (**Macarita** y **PauletteIA**) aportan ideas, las votan dentro de su
 equipo, y una **administradora** controla el ciclo de vida de la reunión
 (iniciar, resumir, terminar, exportar, historial).
 
@@ -145,8 +145,25 @@ Todas las respuestas: `{ ok: true, data }` o `{ ok: false, error }`.
 - Un voto por participante por idea; se puede quitar.
 - Máximo **2 votos** por participante por reunión (`MAX_VOTES` en `backend/Code.gs`). Quitar un voto no cuenta.
 - Solo se votan ideas del **equipo propio**, y **no** las ideas propias.
+- El ranking muestra **top 3** por equipo + **top 3 general** (`TOP_N` en `backend/Code.gs`).
 - El resumen, una vez generado, queda fijo salvo que la admin lo regenere.
 - Cerrar una reunión no borra datos: cambia `estado` a `cerrada`.
+
+### Sesión por celular
+
+La identidad (nombre + equipo) se guarda en `localStorage` **atada a la reunión
+activa**. Si vuelves a abrir el enlace:
+
+- misma reunión en curso → retomas donde ibas, sin volver a escribir nada;
+- la reunión terminó, o ya hay otra distinta → se borra el registro viejo y te
+  vuelve a pedir nombre y equipo (así el mismo enlace sirve para varias reuniones
+  desde el mismo celular).
+
+El botón **"Salir"** en la barra inferior borra el registro manualmente para
+prestarle el celular a otra persona en la misma reunión.
+
+En las ideas del tablero y del ranking **no se muestra el nombre** de quien las
+propuso (sí en el detalle y el CSV de la administradora).
 
 ## Decisiones sobre las preguntas abiertas del spec (§12)
 
@@ -174,7 +191,7 @@ es la exportación de datos completa.
 2. Nombre de la administradora → pide PIN; con PIN correcto entra al panel admin.
 3. Dos votos simultáneos a la misma idea → dos filas en `Votos`, ninguno se
    pierde (LockService).
-4. "Generar resumen ahora" → top 5 por equipo sin cerrar la reunión.
+4. "Generar resumen ahora" → top 3 por equipo + top 3 general, sin cerrar la reunión.
 5. "Terminar reunión" → no acepta más ideas/votos y deja el resumen fijo.
 6. "Descargar CSV" → archivo con ideas, votos y resumen de esa reunión.
 7. El historial muestra todas las reuniones.

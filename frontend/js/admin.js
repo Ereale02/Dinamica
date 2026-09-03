@@ -146,20 +146,26 @@
     var esc = UI.esc;
     var m = d.meeting;
     var s = d.summary;
-    var teams = ['Macarita', 'PastelIA'];
-    var colors = { Macarita: 'var(--macarita)', PastelIA: 'var(--pastelia)' };
+    var teams = ['Macarita', 'PauletteIA'];
+    var colors = { Macarita: 'var(--macarita)', PauletteIA: 'var(--pastelia)' };
+
+    function rows(list, showTeam) {
+      if (!list || !list.length) return '<div class="empty">Sin datos.</div>';
+      return list.map(function (e, i) {
+        var meta = (showTeam ? esc(e.equipo) + ' · ' : '') + esc(e.autor) +
+          ' · ' + e.votos + ' voto' + (e.votos === 1 ? '' : 's');
+        return '<div class="idea-card rank"><div class="n" style="color:var(--ink-soft)">' +
+          (i + 1) + '</div><div style="flex:1;"><div class="who">' + meta +
+          '</div><div class="text">' + esc(e.texto) + '</div></div></div>';
+      }).join('');
+    }
 
     var top = teams.map(function (team) {
-      var rows = s && s.equipos && s.equipos[team] && s.equipos[team].length
-        ? s.equipos[team].map(function (e, i) {
-            return '<div class="idea-card rank"><div class="n" style="color:' + colors[team] + '">' +
-              (i + 1) + '</div><div style="flex:1;"><div class="who">' + esc(e.autor) +
-              ' · ' + e.votos + ' voto' + (e.votos === 1 ? '' : 's') + '</div><div class="text">' +
-              esc(e.texto) + '</div></div></div>';
-          }).join('')
-        : '<div class="empty">Sin datos.</div>';
-      return '<h3 class="section-title" style="color:' + colors[team] + '">Equipo ' + team + ' · top 5</h3>' + rows;
-    }).join('');
+      var list = s && s.equipos && s.equipos[team];
+      return '<h3 class="section-title" style="color:' + colors[team] + '">Equipo ' + team + ' · top 3</h3>' +
+        rows(list, false);
+    }).join('') +
+    '<h3 class="section-title">Top 3 general</h3>' + rows(s && s.general, true);
 
     UI.$('#detailBody').innerHTML =
       '<h2 class="section-title">' + esc(m.nombre) +
