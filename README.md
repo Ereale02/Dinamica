@@ -1,9 +1,12 @@
 # Kickoff IA — App de dinámica
 
 App web ligera para una dinámica de lluvia de ideas sobre casos de uso de IA.
-Dos equipos (**Macarita** y **PauletteIA**) aportan ideas, las votan dentro de su
-equipo, y una **administradora** controla el ciclo de vida de la reunión
-(iniciar, resumir, terminar, exportar, historial).
+Tres equipos (**Macarita**, **PauletteIA** y **Creatividad**) aportan ideas, las
+votan dentro de su equipo, y una **administradora** controla el ciclo de vida de
+la reunión (iniciar, resumir, terminar, exportar, historial).
+
+Los equipos se configuran en `TEAMS` (`backend/Code.gs`); el frontend los toma de
+`TEAMS`/`TEAM_COLOR` en `frontend/js/app.js` y de los botones en `index.html`.
 
 Implementa la especificación `spec-app-kickoff-ia.md` con la **Opción A**:
 código en GitHub, frontend estático en GitHub Pages, y **Google Apps Script +
@@ -145,7 +148,7 @@ Todas las respuestas: `{ ok: true, data }` o `{ ok: false, error }`.
 - Un voto por participante por idea; se puede quitar.
 - Máximo **2 votos** por participante por reunión (`MAX_VOTES` en `backend/Code.gs`). Quitar un voto no cuenta.
 - Solo se votan ideas del **equipo propio**, y **no** las ideas propias.
-- El ranking muestra **top 3** por equipo + **top 3 general** (`TOP_N` en `backend/Code.gs`).
+- El ranking muestra **top 3 por equipo** + un **🏆 Podio** con la idea más votada de cada equipo (`TOP_N` en `backend/Code.gs`). El CSV incluye además el top 3 general.
 - El resumen, una vez generado, queda fijo salvo que la admin lo regenere.
 - Cerrar una reunión no borra datos: cambia `estado` a `cerrada`.
 

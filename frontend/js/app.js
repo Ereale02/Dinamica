@@ -180,7 +180,6 @@
           meetingId: r.meeting.id
         };
         save();
-        $('#headerTitle').textContent = 'Equipo ' + r.team;
         $('#bottomNav').style.display = 'flex';
         $('#navLeave').style.display = 'block';
         $('#navAdmin').style.display = 'none';
@@ -253,8 +252,12 @@
     location.reload();
   }
 
-  function goToIdeas() { showScreen('screen-ideas'); setNav('ideas'); }
+  function goToIdeas() {
+    $('#headerTitle').textContent = '¿En qué te ayudaría la IA?';
+    showScreen('screen-ideas'); setNav('ideas');
+  }
   function goToBoard() {
+    $('#headerTitle').textContent = state.session ? ('Equipo ' + state.session.team) : 'Resultados';
     showScreen('screen-board'); setNav('board');
     refreshBoard();
   }
@@ -348,6 +351,12 @@
   }
 
   var TOP_N = 3;
+  var TEAMS = ['Macarita', 'PauletteIA', 'Creatividad'];
+  var TEAM_COLOR = {
+    Macarita: 'var(--macarita)',
+    PauletteIA: 'var(--pastelia)',
+    Creatividad: 'var(--creatividad)'
+  };
 
   function topByTeam(team) {
     return (state.board.ideas || [])
@@ -357,22 +366,38 @@
       .slice(0, TOP_N);
   }
 
-  function topOverall(n) {
-    return (state.board.ideas || [])
-      .slice()
-      .sort(function (a, b) { return b.votos - a.votos; })
-      .slice(0, n);
+  // La idea #1 de cada equipo, ordenadas entre sí (podio).
+  function podium() {
+    return TEAMS
+      .map(function (t) {
+        var champ = topByTeam(t)[0];
+        return champ ? { equipo: t, texto: champ.texto, votos: champ.votos } : null;
+      })
+      .filter(Boolean)
+      .sort(function (a, b) { return b.votos - a.votos; });
   }
 
-  function rankRows(entries, color, showTeam) {
+  function rankRows(entries, color) {
     if (!entries.length) return '<div class="empty">Sin ideas todavía.</div>';
     return entries.map(function (e, i) {
-      var meta = (showTeam ? esc(e.equipo) + ' · ' : '') +
-        e.votos + ' voto' + (e.votos === 1 ? '' : 's');
       return '<div class="idea-card rank">' +
         '<div class="n" style="color:' + color + '">' + (i + 1) + '</div>' +
         '<div style="flex:1;">' +
-        '<div class="who">' + meta + '</div>' +
+        '<div class="who">' + e.votos + ' voto' + (e.votos === 1 ? '' : 's') + '</div>' +
+        '<div class="text">' + esc(e.texto) + '</div>' +
+        '</div></div>';
+    }).join('');
+  }
+
+  function podiumRows(list) {
+    if (!list.length) return '<div class="empty">Sin ideas todavía.</div>';
+    var medals = ['🥇', '🥈', '🥉'];
+    return list.map(function (e, i) {
+      return '<div class="idea-card rank">' +
+        '<div class="n" style="font-size:26px;min-width:34px;line-height:1;">' + (medals[i] || '🏅') + '</div>' +
+        '<div style="flex:1;">' +
+        '<div class="who" style="color:' + (TEAM_COLOR[e.equipo] || 'var(--ink-soft)') + '">' +
+        esc(e.equipo) + ' · ' + e.votos + ' voto' + (e.votos === 1 ? '' : 's') + '</div>' +
         '<div class="text">' + esc(e.texto) + '</div>' +
         '</div></div>';
     }).join('');
@@ -380,14 +405,14 @@
 
   function renderResultsView() {
     var el = $('#boardResultsView');
-    el.innerHTML =
-      '<h3 class="section-title" style="color:var(--macarita)">Equipo Macarita · top ' + TOP_N + '</h3>' +
-      rankRows(topByTeam('Macarita'), 'var(--macarita)') +
-      '<h3 class="section-title" style="color:var(--pastelia)">Equipo PauletteIA · top ' + TOP_N + '</h3>' +
-      rankRows(topByTeam('PauletteIA'), 'var(--pastelia)') +
+    var teamsHtml = TEAMS.map(function (t) {
+      return '<h3 class="section-title" style="color:' + TEAM_COLOR[t] + '">Equipo ' + t + ' · top ' + TOP_N + '</h3>' +
+        rankRows(topByTeam(t), TEAM_COLOR[t]);
+    }).join('');
+    el.innerHTML = teamsHtml +
       '<div class="divider"></div>' +
-      '<h3 class="section-title">Top ' + TOP_N + ' general</h3>' +
-      rankRows(topOverall(TOP_N), 'var(--ink)', true);
+      '<h3 class="section-title">🏆 Podio · idea más votada por equipo</h3>' +
+      podiumRows(podium());
   }
 
   /* ---------------------------- SHARE ----------------------------- */
@@ -456,7 +481,6 @@
       if (adminHere && !valid) { window.Admin.enter(); return; }
 
       if (valid) {
-        $('#headerTitle').textContent = 'Equipo ' + state.session.team;
         $('#bottomNav').style.display = 'flex';
         if (!adminHere) $('#navLeave').style.display = 'block';
         if (s.hasSubmittedIdeas) {

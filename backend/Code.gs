@@ -28,7 +28,7 @@ var HEADERS = {
   Votos:         ['id_voto', 'id_reunion', 'id_idea', 'id_participante_que_vota', 'fecha']
 };
 
-var TEAMS = ['Macarita', 'PauletteIA'];
+var TEAMS = ['Macarita', 'PauletteIA', 'Creatividad'];
 var LOCK_MS = 20000;
 var MAX_VOTES = 2; // votos por participante, por reunión (no cuenta quitar)
 var TOP_N = 3;     // cuántas ideas por equipo en el resumen / ranking
@@ -282,13 +282,20 @@ function computeSummary_(mid) {
     .sort(function (a, b) { return b.votos - a.votos; })
     .slice(0, TOP_N);
 
+  // Podio: la idea más votada de cada equipo, ordenadas entre sí.
+  var podio = TEAMS
+    .map(function (team) { return (equipos[team] || [])[0] ? Object.assign({ equipo: team }, equipos[team][0]) : null; })
+    .filter(function (x) { return x; })
+    .sort(function (a, b) { return b.votos - a.votos; });
+
   return {
     generado_en: now_(),
     total_participantes: parts.length,
     total_ideas: ideas.length,
     total_votos: votes.length,
     equipos: equipos,
-    general: general
+    general: general,
+    podio: podio
   };
 }
 
@@ -563,6 +570,12 @@ function exportMeeting(params) {
   L.push('TOP ' + TOP_N + ' · GENERAL');
   L.push(csvRow_(['#', 'equipo', 'autor', 'idea', 'votos']));
   (summary.general || []).forEach(function (e, idx) {
+    L.push(csvRow_([idx + 1, e.equipo, e.autor, e.texto, e.votos]));
+  });
+  L.push('');
+  L.push('PODIO · idea más votada por equipo');
+  L.push(csvRow_(['lugar', 'equipo', 'autor', 'idea', 'votos']));
+  (summary.podio || []).forEach(function (e, idx) {
     L.push(csvRow_([idx + 1, e.equipo, e.autor, e.texto, e.votos]));
   });
 

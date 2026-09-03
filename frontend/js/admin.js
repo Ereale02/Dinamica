@@ -146,26 +146,38 @@
     var esc = UI.esc;
     var m = d.meeting;
     var s = d.summary;
-    var teams = ['Macarita', 'PauletteIA'];
-    var colors = { Macarita: 'var(--macarita)', PauletteIA: 'var(--pastelia)' };
+    var teams = ['Macarita', 'PauletteIA', 'Creatividad'];
+    var colors = { Macarita: 'var(--macarita)', PauletteIA: 'var(--pastelia)', Creatividad: 'var(--creatividad)' };
+    var medals = ['🥇', '🥈', '🥉'];
 
-    function rows(list, showTeam) {
+    function rows(list) {
       if (!list || !list.length) return '<div class="empty">Sin datos.</div>';
       return list.map(function (e, i) {
-        var meta = (showTeam ? esc(e.equipo) + ' · ' : '') + esc(e.autor) +
-          ' · ' + e.votos + ' voto' + (e.votos === 1 ? '' : 's');
+        var meta = esc(e.autor) + ' · ' + e.votos + ' voto' + (e.votos === 1 ? '' : 's');
         return '<div class="idea-card rank"><div class="n" style="color:var(--ink-soft)">' +
           (i + 1) + '</div><div style="flex:1;"><div class="who">' + meta +
           '</div><div class="text">' + esc(e.texto) + '</div></div></div>';
       }).join('');
     }
 
+    function podiumRows(list) {
+      if (!list || !list.length) return '<div class="empty">Sin datos.</div>';
+      return list.map(function (e, i) {
+        return '<div class="idea-card rank"><div class="n" style="font-size:26px;min-width:34px;line-height:1;">' +
+          (medals[i] || '🏅') + '</div><div style="flex:1;"><div class="who" style="color:' +
+          (colors[e.equipo] || 'var(--ink-soft)') + '">' + esc(e.equipo) + ' · ' + esc(e.autor) +
+          ' · ' + e.votos + ' voto' + (e.votos === 1 ? '' : 's') + '</div><div class="text">' +
+          esc(e.texto) + '</div></div></div>';
+      }).join('');
+    }
+
     var top = teams.map(function (team) {
       var list = s && s.equipos && s.equipos[team];
       return '<h3 class="section-title" style="color:' + colors[team] + '">Equipo ' + team + ' · top 3</h3>' +
-        rows(list, false);
+        rows(list);
     }).join('') +
-    '<h3 class="section-title">Top 3 general</h3>' + rows(s && s.general, true);
+    '<div class="divider"></div>' +
+    '<h3 class="section-title">🏆 Podio · idea más votada por equipo</h3>' + podiumRows(s && s.podio);
 
     UI.$('#detailBody').innerHTML =
       '<h2 class="section-title">' + esc(m.nombre) +
