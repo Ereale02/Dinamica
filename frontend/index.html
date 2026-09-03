@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Kickoff IA · Paulette</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+<div class="app">
+
+  <header class="top">
+    <div class="brand">Kickoff · Proyecto IA en Paulette</div>
+    <h1 id="headerTitle">¿En qué te ayudaría la IA?</h1>
+  </header>
+
+  <!-- REGISTRO -->
+  <section class="screen active" id="screen-join">
+    <p class="lede">Elige tu equipo y anótate. Cada quien comparte hasta tres ideas de dónde la IA podría ayudarte en tu trabajo.</p>
+    <div id="joinWaiting" class="notice" style="display:none;">Aún no inicia la sesión. Pídele a la administradora que abra la reunión y vuelve a intentar.</div>
+    <div class="field">
+      <label for="nameInput">Tu nombre</label>
+      <input type="text" id="nameInput" placeholder="Ej. Erendy" autocomplete="off">
+    </div>
+    <div class="field" id="teamField">
+      <label>Tu equipo</label>
+      <div class="team-pick">
+        <div class="team-btn macarita" data-team="Macarita"><span class="dot"></span>Equipo Macarita</div>
+        <div class="team-btn pastelia" data-team="PastelIA"><span class="dot"></span>Equipo PastelIA</div>
+      </div>
+    </div>
+    <div class="field" id="pinField" style="display:none;">
+      <label for="pinInput">PIN de administradora</label>
+      <input type="password" id="pinInput" inputmode="numeric" placeholder="••••" autocomplete="off">
+    </div>
+    <button class="primary" id="joinBtn" disabled>Continuar</button>
+  </section>
+
+  <!-- IDEAS -->
+  <section class="screen" id="screen-ideas">
+    <p class="lede">Escribe hasta tres ideas concretas: ¿qué tarea tuya podría hacer más fácil, rápida o completa con IA?</p>
+    <div class="field"><label>Idea 1</label><textarea rows="2" class="ideaInput" placeholder="Ej. Automatizar la conciliación bancaria diaria"></textarea></div>
+    <div class="field"><label>Idea 2</label><textarea rows="2" class="ideaInput" placeholder="Ej. Resumir contratos de proveedores"></textarea></div>
+    <div class="field"><label>Idea 3</label><textarea rows="2" class="ideaInput" placeholder="Ej. Responder dudas de políticas internas"></textarea></div>
+    <button class="primary" id="submitIdeasBtn">Compartir con mi equipo</button>
+    <p class="muted" id="ideasHint"></p>
+  </section>
+
+  <!-- TABLERO / RESULTADOS -->
+  <section class="screen" id="screen-board">
+    <div class="tabs">
+      <div class="tab active" data-view="team">Mi equipo</div>
+      <div class="tab" data-view="results">Resultados</div>
+    </div>
+    <div id="boardTeamView"></div>
+    <div id="boardResultsView" style="display:none;"></div>
+  </section>
+
+  <!-- ADMIN -->
+  <section class="screen" id="screen-admin">
+    <div id="adminActive"></div>
+    <div class="divider"></div>
+    <h2 class="section-title">Historial de reuniones</h2>
+    <div id="adminHistory"></div>
+  </section>
+
+  <!-- DETALLE DE REUNIÓN (admin) -->
+  <section class="screen" id="screen-detail">
+    <button class="ghost" id="detailBack">‹ Volver al historial</button>
+    <div id="detailBody"></div>
+  </section>
+
+  <nav class="bottom" id="bottomNav" style="display:none;">
+    <button data-nav="ideas">Mis ideas</button>
+    <button data-nav="board" class="active">Tablero</button>
+    <button data-nav="admin" id="navAdmin" style="display:none;">Admin</button>
+  </nav>
+
+  <button class="fab" id="shareFab" style="display:none;">Enlace / QR</button>
+
+  <div class="sheet-backdrop" id="sheetBackdrop">
+    <div class="sheet">
+      <h3>Únete desde tu celular</h3>
+      <div id="qrcode"></div>
+      <div class="link-box" id="linkBox"></div>
+      <button class="ghost" id="closeSheet">Cerrar</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/admin.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

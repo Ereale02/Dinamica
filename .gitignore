@@ -1,0 +1,17 @@
+# Secrets
+.env
+.env.local
+*.local
+
+# clasp (Apps Script CLI), por si se usa
+.clasp.json
+.clasprc.json
+
+# OS / editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Node (solo si más adelante se agrega tooling)
+node_modules/

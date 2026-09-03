@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Kickoff IA · Paulette</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  :root{
+    --bg:#F7F2EA;
+    --ink:#2E2118;
+    --ink-soft:#6B5C4F;
+    --card:#FFFFFF;
+    --line:#E4D9C8;
+    --frambuesa:#7A3A63;
+    --frambuesa-soft:#F3E3EC;
+    --caramelo:#A8720F;
+    --caramelo-soft:#F7E9CC;
+    --ok:#3E7A4D;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;-webkit-tap-highlight-color:transparent;}
+  .app{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;padding:0 0 90px 0;}
+
+  header.top{padding:22px 20px 14px;}
+  header.top .brand{font-family:'Fraunces',serif;font-weight:600;font-size:15px;letter-spacing:.02em;color:var(--ink-soft);}
+  header.top h1{font-family:'Fraunces',serif;font-weight:700;font-size:26px;line-height:1.15;margin:4px 0 0;}
+
+  .screen{padding:6px 20px 20px;display:none;flex-direction:column;gap:16px;}
+  .screen.active{display:flex;}
+
+  p.lede{color:var(--ink-soft);font-size:15px;line-height:1.5;margin:0;}
+
+  .field{display:flex;flex-direction:column;gap:6px;}
+  .field label{font-size:13px;font-weight:600;color:var(--ink-soft);}
+  input[type=text], textarea{
+    font-family:'Inter',sans-serif;font-size:16px;color:var(--ink);
+    background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:13px 14px;width:100%;resize:none;
+  }
+  input[type=text]:focus, textarea:focus{outline:none;border-color:var(--frambuesa);}
+
+  .team-pick{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .team-btn{
+    border-radius:14px;padding:18px 12px;border:2px solid transparent;
+    font-family:'Fraunces',serif;font-weight:600;font-size:17px;text-align:center;cursor:pointer;
+    display:flex;flex-direction:column;gap:6px;align-items:center;
+  }
+  .team-btn .dot{width:12px;height:12px;border-radius:50%;}
+  .team-btn.frambuesa{background:var(--frambuesa-soft);color:var(--frambuesa);}
+  .team-btn.frambuesa .dot{background:var(--frambuesa);}
+  .team-btn.caramelo{background:var(--caramelo-soft);color:var(--caramelo);}
+  .team-btn.caramelo .dot{background:var(--caramelo);}
+  .team-btn.selected{border-color:currentColor;}
+
+  button.primary{
+    font-family:'Inter',sans-serif;font-weight:600;font-size:16px;
+    background:var(--ink);color:#fff;border:none;border-radius:10px;
+    padding:15px;cursor:pointer;width:100%;
+  }
+  button.primary:disabled{background:#C9BEB0;cursor:not-allowed;}
+  button.ghost{
+    font-family:'Inter',sans-serif;font-weight:600;font-size:14px;
+    background:transparent;color:var(--ink-soft);border:1px solid var(--line);border-radius:10px;
+    padding:11px;cursor:pointer;width:100%;
+  }
+
+  .idea-card{
+    background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:14px 14px;display:flex;flex-direction:column;gap:8px;
+  }
+  .idea-card .who{font-size:12px;font-weight:600;color:var(--ink-soft);}
+  .idea-card .text{font-size:15px;line-height:1.45;}
+  .idea-card .row{display:flex;align-items:center;justify-content:space-between;margin-top:2px;}
+  .vote-btn{
+    display:flex;align-items:center;gap:6px;border:1px solid var(--line);background:#fff;
+    border-radius:20px;padding:6px 12px;font-size:13px;font-weight:600;color:var(--ink-soft);cursor:pointer;
+  }
+  .vote-btn.voted{background:var(--ink);color:#fff;border-color:var(--ink);}
+
+  .tabs{display:flex;gap:8px;margin-bottom:2px;}
+  .tab{flex:1;text-align:center;padding:10px 4px;border-radius:10px;font-size:13px;font-weight:600;color:var(--ink-soft);background:var(--card);border:1px solid var(--line);cursor:pointer;}
+  .tab.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+
+  .empty{color:var(--ink-soft);font-size:14px;padding:18px 4px;text-align:center;}
+
+  .rank{display:flex;gap:10px;align-items:flex-start;}
+  .rank .n{font-family:'Fraunces',serif;font-weight:700;font-size:20px;color:var(--ink-soft);min-width:22px;}
+
+  nav.bottom{
+    position:fixed;bottom:0;left:0;right:0;background:var(--card);
+    border-top:1px solid var(--line);display:flex;max-width:480px;margin:0 auto;
+  }
+  nav.bottom button{
+    flex:1;background:none;border:none;padding:13px 4px 10px;font-family:'Inter',sans-serif;
+    font-size:12px;font-weight:600;color:var(--ink-soft);cursor:pointer;
+  }
+  nav.bottom button.active{color:var(--ink);}
+
+  .fab{
+    position:fixed;right:18px;bottom:78px;max-width:480px;
+    background:var(--ink);color:#fff;border:none;border-radius:26px;
+    padding:12px 18px;font-size:13px;font-weight:600;box-shadow:0 6px 16px rgba(46,33,24,.25);cursor:pointer;
+  }
+
+  .sheet-backdrop{
+    display:none;position:fixed;inset:0;background:rgba(46,33,24,.45);z-index:10;
+    align-items:flex-end;justify-content:center;
+  }
+  .sheet-backdrop.active{display:flex;}
+  .sheet{
+    background:#fff;width:100%;max-width:480px;border-radius:20px 20px 0 0;
+    padding:22px 22px 32px;display:flex;flex-direction:column;align-items:center;gap:14px;
+  }
+  .sheet h3{font-family:'Fraunces',serif;font-size:19px;margin:0;}
+  #qrcode{padding:10px;background:#fff;border:1px solid var(--line);border-radius:12px;}
+  .link-box{
+    font-size:12px;color:var(--ink-soft);background:var(--bg);border:1px solid var(--line);
+    border-radius:8px;padding:10px 12px;width:100%;text-align:center;word-break:break-all;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="top">
+    <div class="brand">Kickoff · Proyecto IA en Paulette</div>
+    <h1 id="headerTitle">¿En qué te ayudaría la IA?</h1>
+  </header>
+
+  <!-- JOIN -->
+  <section class="screen active" id="screen-join">
+    <p class="lede">Elige tu equipo y anótate. Cada quien va a compartir tres ideas de dónde la IA podría ayudarte en tu trabajo.</p>
+    <div class="field">
+      <label for="nameInput">Tu nombre</label>
+      <input type="text" id="nameInput" placeholder="Ej. Erendy">
+    </div>
+    <div class="field">
+      <label>Tu equipo</label>
+      <div class="team-pick">
+        <div class="team-btn frambuesa" data-team="frambuesa"><span class="dot"></span>Equipo Frambuesa</div>
+        <div class="team-btn caramelo" data-team="caramelo"><span class="dot"></span>Equipo Caramelo</div>
+      </div>
+    </div>
+    <button class="primary" id="joinBtn" disabled>Continuar</button>
+  </section>
+
+  <!-- IDEAS -->
+  <section class="screen" id="screen-ideas">
+    <p class="lede">Escribe tres ideas concretas: ¿qué tarea tuya podría hacer más fácil, rápida o completa con IA?</p>
+    <div class="field"><label>Idea 1</label><textarea rows="2" class="ideaInput" placeholder="Ej. Automatizar la conciliación bancaria diaria"></textarea></div>
+    <div class="field"><label>Idea 2</label><textarea rows="2" class="ideaInput" placeholder="Ej. Resumir contratos de proveedores"></textarea></div>
+    <div class="field"><label>Idea 3</label><textarea rows="2" class="ideaInput" placeholder="Ej. Responder dudas de políticas internas"></textarea></div>
+    <button class="primary" id="submitIdeasBtn">Compartir con mi equipo</button>
+  </section>
+
+  <!-- BOARD -->
+  <section class="screen" id="screen-board">
+    <div class="tabs">
+      <div class="tab active" data-view="team">Mi equipo</div>
+      <div class="tab" data-view="results">Resultados</div>
+    </div>
+    <div id="boardTeamView"></div>
+    <div id="boardResultsView" style="display:none;"></div>
+  </section>
+
+  <nav class="bottom" id="bottomNav" style="display:none;">
+    <button data-nav="ideas">Mis ideas</button>
+    <button data-nav="board" class="active">Tablero</button>
+  </nav>
+
+  <button class="fab" id="shareFab">Compartir enlace / QR</button>
+
+  <div class="sheet-backdrop" id="sheetBackdrop">
+    <div class="sheet">
+      <h3>Únete desde tu celular</h3>
+      <div id="qrcode"></div>
+      <div class="link-box" id="linkBox"></div>
+      <button class="ghost" id="closeSheet">Cerrar</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const state = { id: 'p_' + Math.random().toString(36).slice(2,10), name:'', team:'', ideas:[], votedIds:new Set() };
+let pollTimer = null;
+
+function $(sel){ return document.querySelector(sel); }
+function $all(sel){ return document.querySelectorAll(sel); }
+function showScreen(id){
+  $all('.screen').forEach(s=>s.classList.remove('active'));
+  $('#'+id).classList.add('active');
+}
+
+// --- JOIN ---
+$all('.team-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    $all('.team-btn').forEach(b=>b.classList.remove('selected'));
+    btn.classList.add('selected');
+    state.team = btn.dataset.team;
+    checkJoinReady();
+  });
+});
+$('#nameInput').addEventListener('input', checkJoinReady);
+function checkJoinReady(){
+  $('#joinBtn').disabled = !( $('#nameInput').value.trim() && state.team );
+}
+$('#joinBtn').addEventListener('click', ()=>{
+  state.name = $('#nameInput').value.trim();
+  $('#headerTitle').textContent = 'Hola, ' + state.name;
+  showScreen('screen-ideas');
+});
+
+// --- IDEAS ---
+$('#submitIdeasBtn').addEventListener('click', async ()=>{
+  const inputs = $all('.ideaInput');
+  const ideas = Array.from(inputs).map(i=>i.value.trim()).filter(Boolean);
+  if(ideas.length === 0){ alert('Escribe al menos una idea antes de continuar.'); return; }
+  state.ideas = ideas;
+  const btn = $('#submitIdeasBtn');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+  try{
+    await window.storage.set('idea:'+state.id, JSON.stringify({name:state.name, team:state.team, ideas:state.ideas}), true);
+  }catch(e){ console.error('Error guardando ideas', e); }
+  btn.disabled = false; btn.textContent = 'Compartir con mi equipo';
+  $('#bottomNav').style.display = 'flex';
+  $('#headerTitle').textContent = 'Equipo ' + capitalize(state.team);
+  showScreen('screen-board');
+  refreshBoard();
+  pollTimer = setInterval(refreshBoard, 6000);
+});
+
+function capitalize(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+
+// --- NAV ---
+$all('nav.bottom button').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    $all('nav.bottom button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    if(b.dataset.nav === 'ideas'){ showScreen('screen-ideas'); }
+    else{ showScreen('screen-board'); refreshBoard(); }
+  });
+});
+$all('.tab').forEach(t=>{
+  t.addEventListener('click', ()=>{
+    $all('.tab').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    if(t.dataset.view === 'team'){
+      $('#boardTeamView').style.display='flex';
+      $('#boardResultsView').style.display='none';
+    }else{
+      $('#boardTeamView').style.display='none';
+      $('#boardResultsView').style.display='block';
+    }
+  });
+});
+$('#boardTeamView').style.display='flex';
+$('#boardTeamView').style.flexDirection='column';
+$('#boardTeamView').style.gap='10px';
+
+// --- BOARD DATA ---
+async function fetchAllPrefixed(prefix){
+  const out = {};
+  try{
+    const listing = await window.storage.list(prefix, true);
+    const keys = (listing && listing.keys) || [];
+    for(const k of keys){
+      try{
+        const r = await window.storage.get(k, true);
+        if(r && r.value){ out[k] = JSON.parse(r.value); }
+      }catch(e){ /* skip missing/broken key */ }
+    }
+  }catch(e){ console.error('Error listando', prefix, e); }
+  return out;
+}
+
+async function refreshBoard(){
+  const [ideasMap, votesMap] = await Promise.all([
+    fetchAllPrefixed('idea:'),
+    fetchAllPrefixed('vote:')
+  ]);
+
+  // tally votes per ideaKey ("ownerId::index")
+  const tally = {};
+  Object.values(votesMap).forEach(v=>{
+    (v.votedFor||[]).forEach(k=>{ tally[k] = (tally[k]||0) + 1; });
+  });
+
+  // my current votes (for toggle state), from my own vote record if present
+  const mine = votesMap['vote:'+state.id];
+  state.votedIds = new Set(mine ? (mine.votedFor||[]) : []);
+
+  renderTeamView(ideasMap, tally, state.team);
+  renderResultsView(ideasMap, tally);
+}
+
+function ideaEntries(ideasMap, teamFilter){
+  const entries = [];
+  Object.entries(ideasMap).forEach(([key, rec])=>{
+    const ownerId = key.replace('idea:','');
+    if(teamFilter && rec.team !== teamFilter) return;
+    (rec.ideas||[]).forEach((text, idx)=>{
+      entries.push({ ideaKey: ownerId+'::'+idx, ownerId, name: rec.name, team: rec.team, text });
+    });
+  });
+  return entries;
+}
+
+function renderTeamView(ideasMap, tally, team){
+  const el = $('#boardTeamView');
+  const entries = ideaEntries(ideasMap, team);
+  if(entries.length === 0){
+    el.innerHTML = '<div class="empty">Aún no hay ideas de tu equipo. Sé el primero en compartir.</div>';
+    return;
+  }
+  el.innerHTML = entries.map(e=>{
+    const votes = tally[e.ideaKey] || 0;
+    const voted = state.votedIds.has(e.ideaKey);
+    return `<div class="idea-card">
+      <div class="who">${escapeHtml(e.name)}</div>
+      <div class="text">${escapeHtml(e.text)}</div>
+      <div class="row">
+        <span></span>
+        <button class="vote-btn ${voted?'voted':''}" data-key="${e.ideaKey}">♥ ${votes}</button>
+      </div>
+    </div>`;
+  }).join('');
+  el.querySelectorAll('.vote-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>toggleVote(btn.dataset.key));
+  });
+}
+
+async function toggleVote(ideaKey){
+  if(state.votedIds.has(ideaKey)){ state.votedIds.delete(ideaKey); }
+  else{ state.votedIds.add(ideaKey); }
+  try{
+    await window.storage.set('vote:'+state.id, JSON.stringify({team:state.team, votedFor:Array.from(state.votedIds)}), true);
+  }catch(e){ console.error('Error guardando voto', e); }
+  refreshBoard();
+}
+
+function renderResultsView(ideasMap, tally){
+  const el = $('#boardResultsView');
+  const teams = ['frambuesa','caramelo'];
+  el.innerHTML = teams.map(team=>{
+    const entries = ideaEntries(ideasMap, team)
+      .map(e=>({...e, votes: tally[e.ideaKey]||0}))
+      .sort((a,b)=>b.votes-a.votes)
+      .slice(0,5);
+    const label = team === 'frambuesa' ? 'Equipo Frambuesa' : 'Equipo Caramelo';
+    const color = team === 'frambuesa' ? 'var(--frambuesa)' : 'var(--caramelo)';
+    const rows = entries.length
+      ? entries.map((e,i)=>`<div class="idea-card rank">
+          <div class="n" style="color:${color}">${i+1}</div>
+          <div style="flex:1;">
+            <div class="who">${escapeHtml(e.name)} · ${e.votes} voto${e.votes===1?'':'s'}</div>
+            <div class="text">${escapeHtml(e.text)}</div>
+          </div>
+        </div>`).join('')
+      : '<div class="empty">Sin ideas todavía.</div>';
+    return `<h3 style="font-family:'Fraunces',serif;font-size:16px;color:${color};margin:14px 0 8px;">${label} · top 5</h3>${rows}`;
+  }).join('');
+}
+
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+// --- SHARE SHEET ---
+$('#shareFab').addEventListener('click', ()=>{
+  $('#sheetBackdrop').classList.add('active');
+  const link = window.location.href;
+  $('#linkBox').textContent = link;
+  const qrEl = $('#qrcode');
+  qrEl.innerHTML = '';
+  if(window.QRCode){
+    new QRCode(qrEl, { text: link, width:180, height:180, colorDark:'#2E2118', colorLight:'#ffffff' });
+  }
+});
+$('#closeSheet').addEventListener('click', ()=>{
+  $('#sheetBackdrop').classList.remove('active');
+});
+$('#sheetBackdrop').addEventListener('click', (e)=>{
+  if(e.target.id === 'sheetBackdrop'){ $('#sheetBackdrop').classList.remove('active'); }
+});
+</script>
+</body>
+</html>
