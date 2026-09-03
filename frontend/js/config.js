@@ -8,7 +8,7 @@
  *             campo de PIN. La validación real ocurre en el backend.
  */
 window.APP_CONFIG = {
-  API_URL: 'PEGA_AQUI_LA_URL_DEL_WEB_APP',
+  API_URL: 'https://script.google.com/macros/s/AKfycbwgwPchMQU3IQUKIy_XRD0WfI5acOOI2wkdARVzbFFW0lw6iKwadiurrYdnj634hYx8/exec',
   POLL_MS: 6000,
   ADMIN_NAME: 'Erendira Alejandra Hernández Loza'
 };
